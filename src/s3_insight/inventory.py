@@ -91,11 +91,20 @@ class S3Inventory:
                         
                 except Exception as e:
                     print(f"Error inventorying bucket {bucket}: {e}")
+                    # Create a minimal bucket entry with error info
                     inventory_data[bucket] = {
+                        "bucket_name": bucket,
                         "error": str(e),
                         "object_count": 0,
                         "total_size": 0,
-                        "objects": []
+                        "region": "unknown",
+                        "sampled": False,
+                        "sample_size": 0,
+                        "storage_classes": {},
+                        "file_extensions": {},
+                        "age_buckets": {"recent": 0, "old": 0},
+                        "objects": [],
+                        "inventory_date": datetime.now().isoformat(),
                     }
         
         return inventory_data
@@ -132,7 +141,7 @@ class S3Inventory:
                 "old": 0,     # > 30 days
             }
             
-            thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+            thirty_days_ago = datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=30)
             
             # Use AWS CLI for better performance with large buckets
             paginator = regional_client.get_paginator('list_objects_v2')
@@ -163,13 +172,25 @@ class S3Inventory:
                     
                     # Track age - ensure both datetimes are timezone-aware
                     last_modified = obj['LastModified']
+                    
+                    # Convert both to UTC for comparison
                     if last_modified.tzinfo is None:
                         # If last_modified is naive, assume it's UTC
-                        last_modified = last_modified.replace(tzinfo=timezone.utc)
-                    
-                    if last_modified > thirty_days_ago:
-                        age_buckets["recent"] += 1
+                        last_modified_utc = last_modified.replace(tzinfo=timezone.utc)
                     else:
+                        # If it's already timezone-aware, convert to UTC
+                        last_modified_utc = last_modified.astimezone(timezone.utc)
+                    
+                    try:
+                        if last_modified_utc > thirty_days_ago:
+                            age_buckets["recent"] += 1
+                        else:
+                            age_buckets["old"] += 1
+                    except Exception as e:
+                        # If there's still a timezone issue, skip age tracking for this object
+                        if self.verbose:
+                            print(f"Warning: Could not determine age for object {key}: {e}")
+                        # Default to old if we can't determine
                         age_buckets["old"] += 1
                     
                     # Store object data (with sampling for large buckets)
