@@ -26,8 +26,8 @@ A comprehensive Python CLI tool for AWS S3 bucket inventory and analytics. S3-In
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/s3-insight.git
-cd s3-insight
+git clone https://github.com/quantumsoul-cyber/Project1.git
+cd Project1
 
 # Install in development mode
 pip install -e .

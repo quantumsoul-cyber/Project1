@@ -48,9 +48,9 @@ dev = [
 s3-insight = "s3_insight.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/your-org/s3-insight"
-Repository = "https://github.com/your-org/s3-insight"
-Issues = "https://github.com/your-org/s3-insight/issues"
+Homepage = "https://github.com/quantumsoul-cyber/Project1"
+Repository = "https://github.com/quantumsoul-cyber/Project1"
+Issues = "https://github.com/quantumsoul-cyber/Project1/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/s3_insight"]
