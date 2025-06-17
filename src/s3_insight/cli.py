@@ -4,6 +4,7 @@ import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
+import os
 
 from . import __version__
 from .inventory import S3Inventory
@@ -42,11 +43,14 @@ def main(
 def inventory(
     profile: str = typer.Option(None, "--profile", "-p", help="AWS profile to use"),
     sample: int = typer.Option(100000, "--sample", "-s", help="Sample size for large buckets (>100M objects)"),
-    output: str = typer.Option("inventory.jsonl", "--output", "-o", help="Output file for raw inventory data"),
+    output: str = typer.Option("~/inventory.jsonl", "--output", "-o", help="Output file for raw inventory data"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
 ) -> None:
     """Collect S3 bucket inventory data with optional sampling for large buckets."""
     console.print(f"[bold green]🔍 Starting S3 inventory collection...[/bold green]")
+    
+    # Expand user path for output file
+    output_path = os.path.expanduser(output)
     
     try:
         with Progress(
@@ -66,10 +70,10 @@ def inventory(
             inventory_data = inventory.collect_inventory(buckets)
             
             progress.update(task, description="Writing inventory data...")
-            inventory.write_inventory(inventory_data, output)
+            inventory.write_inventory(inventory_data, output_path)
         
         console.print(f"[bold green]✅ Inventory collection complete![/bold green]")
-        console.print(f"📊 Data written to: [bold blue]{output}[/bold blue]")
+        console.print(f"📊 Data written to: [bold blue]{output_path}[/bold blue]")
         
         # Summary stats
         total_objects = sum(bucket["object_count"] for bucket in inventory_data.values())
@@ -92,14 +96,18 @@ def inventory(
 
 @app.command()
 def report(
-    inventory_file: str = typer.Option("inventory.jsonl", "--input", "-i", help="Input inventory file"),
+    inventory_file: str = typer.Option("~/inventory.jsonl", "--input", "-i", help="Input inventory file"),
     upload: bool = typer.Option(False, "--upload", "-u", help="Upload reports to S3"),
     profile: str = typer.Option(None, "--profile", "-p", help="AWS profile to use"),
-    output_dir: str = typer.Option("reports", "--output-dir", "-o", help="Output directory for reports"),
+    output_dir: str = typer.Option("~/reports", "--output-dir", "-o", help="Output directory for reports"),
     top_extensions: int = typer.Option(10, "--top-extensions", "-t", help="Number of top extensions to show"),
 ) -> None:
     """Generate comprehensive reports and charts from inventory data."""
     console.print(f"[bold green]📊 Generating S3 insight reports...[/bold green]")
+    
+    # Expand user paths
+    inventory_path = os.path.expanduser(inventory_file)
+    output_path = os.path.expanduser(output_dir)
     
     try:
         with Progress(
@@ -111,7 +119,7 @@ def report(
             
             # Load and aggregate data
             inventory = S3Inventory()
-            inventory_data = inventory.load_inventory(inventory_file)
+            inventory_data = inventory.load_inventory(inventory_path)
             
             progress.update(task, description="Aggregating metrics...")
             aggregator = S3Aggregator()
@@ -125,7 +133,7 @@ def report(
             progress.update(task, description="Writing reports...")
             writer = ReportWriter()
             report_files = writer.write_reports(
-                bucket_metrics, account_metrics, charts, output_dir
+                bucket_metrics, account_metrics, charts, output_path
             )
             
             if upload:
@@ -134,7 +142,7 @@ def report(
                 upload_urls = publisher.publish_reports(report_files)
         
         console.print(f"[bold green]✅ Report generation complete![/bold green]")
-        console.print(f"📁 Reports saved to: [bold blue]{output_dir}[/bold blue]")
+        console.print(f"📁 Reports saved to: [bold blue]{output_path}[/bold blue]")
         
         if upload:
             console.print(f"🌐 Reports uploaded to S3")
@@ -158,17 +166,20 @@ def report(
 
 @app.command()
 def stats(
-    inventory_file: str = typer.Option("inventory.jsonl", "--input", "-i", help="Input inventory file"),
+    inventory_file: str = typer.Option("~/inventory.jsonl", "--input", "-i", help="Input inventory file"),
     top: int = typer.Option(10, "--top", "-t", help="Number of top buckets to show"),
     profile: str = typer.Option(None, "--profile", "-p", help="AWS profile to use"),
 ) -> None:
     """Display quick statistics from inventory data."""
     console.print(f"[bold green]📈 S3 Statistics Overview[/bold green]")
     
+    # Expand user path
+    inventory_path = os.path.expanduser(inventory_file)
+    
     try:
         # Load and aggregate data
         inventory = S3Inventory()
-        inventory_data = inventory.load_inventory(inventory_file)
+        inventory_data = inventory.load_inventory(inventory_path)
         
         aggregator = S3Aggregator()
         bucket_metrics = aggregator.aggregate_buckets(inventory_data)

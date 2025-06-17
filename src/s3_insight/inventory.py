@@ -4,7 +4,7 @@ import json
 import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -161,8 +161,12 @@ class S3Inventory:
                     file_extensions[extension]["count"] += 1
                     file_extensions[extension]["size"] += obj['Size']
                     
-                    # Track age
+                    # Track age - ensure both datetimes are timezone-aware
                     last_modified = obj['LastModified']
+                    if last_modified.tzinfo is None:
+                        # If last_modified is naive, assume it's UTC
+                        last_modified = last_modified.replace(tzinfo=timezone.utc)
+                    
                     if last_modified > thirty_days_ago:
                         age_buckets["recent"] += 1
                     else:
