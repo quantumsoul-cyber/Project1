@@ -127,7 +127,7 @@ def report(
             account_metrics = aggregator.aggregate_account(bucket_metrics)
             
             progress.update(task, description="Generating charts...")
-            chart_gen = ChartGenerator()
+            chart_gen = ChartGenerator(output_dir=os.path.join(output_path, "charts"))
             charts = chart_gen.generate_charts(bucket_metrics, account_metrics, top_extensions)
             
             progress.update(task, description="Writing reports...")

@@ -11,16 +11,17 @@ from matplotlib.figure import Figure
 class ChartGenerator:
     """Generates charts from S3 inventory data."""
     
-    def __init__(self, output_dir: str = "charts", dpi: int = 300) -> None:
+    def __init__(self, output_dir: str = "~/charts", dpi: int = 300) -> None:
         """Initialize the chart generator.
         
         Args:
             output_dir: Directory to save charts
             dpi: DPI for chart images
         """
-        self.output_dir = output_dir
+        # Expand user path for output directory
+        self.output_dir = os.path.expanduser(output_dir)
         self.dpi = dpi
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(self.output_dir, exist_ok=True)
         
         # Set matplotlib style
         plt.style.use('default')
