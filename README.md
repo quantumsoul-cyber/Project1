@@ -18,7 +18,7 @@ A comprehensive Python CLI tool for AWS S3 bucket inventory and analytics. S3-In
 
 ### Prerequisites
 
-- Python 3.10 or higher
+- Python 3.9 or higher
 - AWS CLI v2 configured with appropriate credentials
 - AWS permissions: `s3:List*`, `s3:GetBucketLocation`, `s3:PutObject`
 
