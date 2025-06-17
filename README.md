@@ -9,6 +9,7 @@ A comprehensive Python CLI tool for AWS S3 bucket inventory and analytics. S3-In
 - **🎯 Smart Sampling**: Automatic sampling for large buckets (>100M objects) to improve performance
 - **📈 Visual Charts**: Auto-generated pie charts and bar charts using Matplotlib
 - **📋 Multiple Formats**: Export reports in CSV, JSON, and Markdown formats
+- **📊 Comprehensive Dashboard**: Single image with all charts combined for presentations
 - **☁️ S3 Publishing**: Automatically upload reports to a dedicated S3 reports bucket
 - **💰 Cost Analysis**: Storage class breakdown and cost estimation
 - **⏰ Age Analysis**: Object age distribution (recent vs. old objects)
@@ -44,27 +45,48 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-### 1. Collect S3 Inventory
+### Prerequisites
+
+- Python 3.9 or higher
+- AWS CLI v2 configured with appropriate credentials
+- AWS permissions: `s3:List*`, `s3:GetBucketLocation`, `s3:PutObject`
+
+### Installation
 
 ```bash
-# Basic inventory collection
+# Clone the repository
+git clone https://github.com/quantumsoul-cyber/Project1.git
+cd Project1
+
+# Install in development mode
+pip install -e .
+```
+
+### Basic Usage
+
+**📝 Important Note**: By default, S3-Insight saves files to your home directory (`~`) to avoid permission issues. Make sure to run commands from the appropriate directory or specify full paths.
+
+#### 1. Collect S3 Inventory
+
+```bash
+# Collect inventory data (saves to ~/inventory.jsonl)
 s3-insight inventory
 
 # With specific AWS profile
-s3-insight inventory --profile prod
+s3-insight inventory --profile production
 
-# Custom sample size for large buckets
-s3-insight inventory --sample 50000
-
-# Verbose output
-s3-insight inventory --verbose
+# Custom output location
+s3-insight inventory --output ~/my-inventory.jsonl
 ```
 
-### 2. Generate Reports and Charts
+#### 2. Generate Reports and Charts
 
 ```bash
-# Generate all reports and charts
+# Generate all reports and charts (reads from ~/inventory.jsonl, saves to ~/reports)
 s3-insight report
+
+# Generate just the comprehensive dashboard
+s3-insight dashboard
 
 # Upload reports to S3
 s3-insight report --upload
@@ -76,10 +98,10 @@ s3-insight report --output-dir my-reports
 s3-insight report --top-extensions 15
 ```
 
-### 3. View Quick Statistics
+#### 3. View Quick Statistics
 
 ```bash
-# Display account overview
+# Display account overview (reads from ~/inventory.jsonl)
 s3-insight stats
 
 # Show top 20 buckets
@@ -100,8 +122,28 @@ s3-insight inventory --profile production --output inventory.jsonl
 # 2. Generate comprehensive reports
 s3-insight report --input inventory.jsonl --upload --output-dir reports
 
-# 3. View quick stats
+# 3. Generate dashboard overview
+s3-insight dashboard --input inventory.jsonl --output-dir reports
+
+# 4. View quick stats
 s3-insight stats --input inventory.jsonl --top 10
+```
+
+### Troubleshooting
+
+**File Location Issues**: If you get "No such file or directory" errors, remember that by default:
+- Inventory files are saved to your home directory (`~/inventory.jsonl`)
+- Reports are saved to your home directory (`~/reports/`)
+- Run commands from your home directory or specify full paths
+
+**Example**:
+```bash
+# If you're in the project directory, use full paths:
+s3-insight report --input ~/inventory.jsonl --output-dir ~/reports
+
+# Or change to home directory first:
+cd ~
+s3-insight report
 ```
 
 ### Large Account Analysis
@@ -140,6 +182,7 @@ s3-insight report --output-dir test-reports
 - `top_buckets_bar.png`: Top buckets by size horizontal bar chart
 - `age_distribution_pie.png`: Object age distribution pie chart
 - `region_distribution_pie.png`: Bucket distribution by region
+- `comprehensive_dashboard.png`: All charts combined in a single dashboard view
 
 ## Report Contents
 
@@ -253,90 +296,3 @@ s3-insight-reports-123456789012/
 │       └── ...
 └── index.html
 ```
-
-## Development
-
-### Project Structure
-
-```
-s3-insight/
-├── src/s3_insight/
-│   ├── cli.py          # CLI entry point
-│   ├── inventory.py    # S3 inventory collection
-│   ├── aggregate.py    # Data aggregation and metrics
-│   ├── charts.py       # Chart generation
-│   ├── formats.py      # Report format writers
-│   ├── publish.py      # S3 upload functionality
-│   └── utils.py        # Utility functions
-├── tests/              # Test suite
-├── docs/               # Documentation
-└── pyproject.toml      # Project configuration
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=s3_insight
-
-# Run specific test file
-pytest tests/test_inventory.py
-```
-
-### Code Quality
-
-```bash
-# Format code
-black src/ tests/
-
-# Sort imports
-isort src/ tests/
-
-# Type checking
-mypy src/
-
-# Linting
-flake8 src/ tests/
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/your-org/s3-insight/issues)
-- **Documentation**: [Wiki](https://github.com/your-org/s3-insight/wiki)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/s3-insight/discussions)
-
-## Roadmap
-
-- [ ] Scheduled inventory collection via GitHub Actions
-- [ ] Cost optimization recommendations
-- [ ] Lifecycle policy analysis
-- [ ] Cross-account inventory support
-- [ ] Real-time monitoring dashboard
-- [ ] Integration with AWS Cost Explorer
-- [ ] Support for S3 Inventory reports
-- [ ] Advanced filtering and querying
-- [ ] Export to additional formats (Excel, PDF)
-- [ ] Custom chart templates
-
-## Acknowledgments
-
-- Built with [Typer](https://typer.tiangolo.com/) for CLI
-- Charts generated with [Matplotlib](https://matplotlib.org/)
-- Rich console output with [Rich](https://rich.readthedocs.io/)
-- AWS integration via [boto3](https://boto3.amazonaws.com/) 

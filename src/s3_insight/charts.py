@@ -76,6 +76,12 @@ class ChartGenerator:
                 account_metrics["regions"]
             )
         
+        # Create comprehensive dashboard
+        if charts:
+            charts["dashboard"] = self._create_comprehensive_dashboard(
+                bucket_metrics, account_metrics, charts, top_extensions
+            )
+        
         return charts
     
     def _create_filetype_pie_chart(self, file_extensions: Dict[str, Any], top_n: int) -> str:
@@ -326,6 +332,81 @@ class ChartGenerator:
         
         # Save chart
         filename = os.path.join(self.output_dir, "region_distribution_pie.png")
+        plt.savefig(filename, dpi=self.dpi, bbox_inches='tight')
+        plt.close()
+        
+        return filename
+
+    def _create_comprehensive_dashboard(self, bucket_metrics: Dict[str, Any], account_metrics: Dict[str, Any], charts: Dict[str, str], top_extensions: int) -> str:
+        """Create a comprehensive dashboard with all charts combined into a single figure.
+        
+        Args:
+            bucket_metrics: Per-bucket metrics
+            account_metrics: Account-level metrics
+            charts: Dictionary of chart names to file paths
+            top_extensions: Number of top extensions to show
+            
+        Returns:
+            Path to saved dashboard file
+        """
+        # Create a single figure with all charts
+        fig, axs = plt.subplots(2, 3, figsize=(18, 12))
+        
+        # File type distribution pie chart
+        if account_metrics["file_extensions"]:
+            axs[0, 0].pie(
+                [ext["count"] for ext in account_metrics["file_extensions"].values()],
+                labels=[ext for ext in account_metrics["file_extensions"]],
+                autopct='%1.1f%%',
+                colors=plt.cm.Set3(range(len(account_metrics["file_extensions"])))
+            )
+            axs[0, 0].set_title('File Type Distribution (by Object Count)')
+        
+        # Storage class distribution bar chart
+        if account_metrics["storage_classes"]:
+            axs[0, 1].bar(
+                account_metrics["storage_classes"].keys(),
+                [cls["count"] for cls in account_metrics["storage_classes"].values()],
+                color=plt.cm.viridis(range(len(account_metrics["storage_classes"])))
+            )
+            axs[0, 1].set_title('Storage Class Distribution (by Object Count)')
+        
+        # Top buckets by size bar chart
+        if bucket_metrics:
+            axs[0, 2].barh(
+                [name for name, _ in sorted(bucket_metrics.items(), key=lambda x: x[1]["total_size_gb"], reverse=True)[:5]],
+                [metrics["total_size_gb"] for _, metrics in sorted(bucket_metrics.items(), key=lambda x: x[1]["total_size_gb"], reverse=True)[:5]],
+                color=plt.cm.coolwarm(range(5))
+            )
+            axs[0, 2].set_title('Top 5 Buckets by Size')
+        
+        # Age distribution pie chart
+        if account_metrics["age_buckets"]["recent"] > 0 or account_metrics["age_buckets"]["old"] > 0:
+            axs[1, 0].pie(
+                [account_metrics["age_buckets"]["recent"], account_metrics["age_buckets"]["old"]],
+                labels=['Recent (≤30 days)', 'Old (>30 days)'],
+                autopct='%1.1f%%',
+                colors=['#2ecc71', '#e74c3c']
+            )
+            axs[1, 0].set_title('Object Age Distribution')
+        
+        # Region distribution pie chart
+        if account_metrics["regions"]:
+            axs[1, 1].pie(
+                [size for _, size in account_metrics["regions"].items()],
+                labels=[region for region, _ in account_metrics["regions"].items()],
+                autopct='%1.1f%%',
+                colors=plt.cm.tab10(range(len(account_metrics["regions"])))
+            )
+            axs[1, 1].set_title('Bucket Distribution by Region')
+        
+        # Add comprehensive dashboard title
+        fig.suptitle('Comprehensive Dashboard', fontsize=18, fontweight='bold')
+        
+        plt.tight_layout()
+        
+        # Save dashboard
+        filename = os.path.join(self.output_dir, "comprehensive_dashboard.png")
         plt.savefig(filename, dpi=self.dpi, bbox_inches='tight')
         plt.close()
         

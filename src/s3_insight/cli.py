@@ -260,5 +260,67 @@ def stats(
         raise typer.Exit(1)
 
 
+@app.command()
+def dashboard(
+    inventory_file: str = typer.Option("~/inventory.jsonl", "--input", "-i", help="Input inventory file"),
+    output_dir: str = typer.Option("~/reports", "--output-dir", "-o", help="Output directory for dashboard"),
+    top_extensions: int = typer.Option(10, "--top-extensions", "-t", help="Number of top extensions to show"),
+) -> None:
+    """Generate a comprehensive dashboard with all charts combined."""
+    console.print(f"[bold green]📊 Generating S3 insight dashboard...[/bold green]")
+    
+    # Expand user paths
+    inventory_path = os.path.expanduser(inventory_file)
+    output_path = os.path.expanduser(output_dir)
+    
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Loading inventory data...", total=None)
+            
+            # Load and aggregate data
+            inventory = S3Inventory()
+            inventory_data = inventory.load_inventory(inventory_path)
+            
+            progress.update(task, description="Aggregating metrics...")
+            aggregator = S3Aggregator()
+            bucket_metrics = aggregator.aggregate_buckets(inventory_data)
+            account_metrics = aggregator.aggregate_account(bucket_metrics)
+            
+            progress.update(task, description="Generating dashboard...")
+            chart_gen = ChartGenerator(output_dir=os.path.join(output_path, "charts"))
+            charts = chart_gen.generate_charts(bucket_metrics, account_metrics, top_extensions)
+            
+            # Get the dashboard file
+            dashboard_file = charts.get("dashboard")
+        
+        if dashboard_file:
+            console.print(f"[bold green]✅ Dashboard generation complete![/bold green]")
+            console.print(f"📊 Dashboard saved to: [bold blue]{dashboard_file}[/bold blue]")
+            
+            # Show dashboard info
+            summary_table = Table(title="Dashboard Summary")
+            summary_table.add_column("Metric", style="cyan")
+            summary_table.add_column("Value", style="magenta")
+            
+            summary_table.add_row("Total Buckets", str(account_metrics["bucket_count"]))
+            summary_table.add_row("Total Objects", f"{account_metrics['total_objects']:,}")
+            summary_table.add_row("Total Size", f"{account_metrics['total_size_gb']:.2f} GB")
+            summary_table.add_row("File Types", str(len(account_metrics["file_extensions"])))
+            summary_table.add_row("Storage Classes", str(len(account_metrics["storage_classes"])))
+            summary_table.add_row("Regions", str(len(account_metrics["regions"])))
+            
+            console.print(summary_table)
+        else:
+            console.print("[bold red]❌ No dashboard generated - insufficient data[/bold red]")
+        
+    except Exception as e:
+        console.print(f"[bold red]❌ Error during dashboard generation: {e}[/bold red]")
+        raise typer.Exit(1)
+
+
 if __name__ == "__main__":
     app() 
